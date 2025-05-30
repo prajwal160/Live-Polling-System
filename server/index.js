@@ -26,7 +26,53 @@ app.use(express.json());
 
 // Test route to verify server is running
 app.get('/', (req, res) => {
-  res.json({ message: 'Server is running successfully!' });
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Server Status</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f2f5;
+          }
+          .container {
+            text-align: center;
+            padding: 2rem;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+          }
+          h1 {
+            color: #28a745;
+            margin-bottom: 1rem;
+          }
+          p {
+            color: #666;
+            margin: 0.5rem 0;
+          }
+          .status {
+            font-size: 1.2rem;
+            color: #0066cc;
+            margin-top: 1rem;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1>🚀 Server is Running!</h1>
+          <p>The WebSocket server is active and ready for connections.</p>
+          <p class="status">Status: Online</p>
+          <p>Environment: ${process.env.NODE_ENV || 'development'}</p>
+        </div>
+      </body>
+    </html>
+  `);
 });
 
 // Store active polls and connected users
@@ -184,6 +230,9 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
-  console.log('Test the server by visiting http://localhost:5000/test');
+  console.log('\x1b[32m%s\x1b[0m', '🚀 Server Successfully Deployed and Running!');
+  console.log('\x1b[36m%s\x1b[0m', `📡 Server is listening on port ${PORT}`);
+  console.log('\x1b[36m%s\x1b[0m', `🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log('\x1b[36m%s\x1b[0m', '✅ WebSocket connections are ready');
+  console.log('\x1b[33m%s\x1b[0m', `💡 Allowed Origins: ${allowedOrigins.join(', ')}`);
 }); 

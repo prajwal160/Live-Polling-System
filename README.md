@@ -63,8 +63,8 @@ npm start
 ```
 
 5. Open your browser and visit:
-- Teacher Dashboard: http://localhost:3001/teacher
-- Student Dashboard: http://localhost:3001/student
+- Teacher Dashboard: http://localhost:3000/teacher
+- Student Dashboard: http://localhost:3000/student
 
 ## Project Structure
 

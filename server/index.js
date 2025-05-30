@@ -10,7 +10,7 @@ const server = http.createServer(app);
 // Get allowed origins from environment variable or default to localhost
 const allowedOrigins = process.env.ALLOWED_ORIGINS 
   ? process.env.ALLOWED_ORIGINS.split(',') 
-  : ["http://localhost:3001"];
+  : ["http://localhost:3000"];
 
 const io = socketIo(server, {
   cors: {

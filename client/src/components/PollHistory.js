@@ -4,6 +4,8 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 
+const BACKEND_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
 const PollHistory = () => {
   const navigate = useNavigate();
   const [polls, setPolls] = useState([]);
@@ -14,7 +16,7 @@ const PollHistory = () => {
   useEffect(() => {
     const fetchPolls = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/polls/history');
+        const response = await axios.get(`${BACKEND_URL}/api/polls/history`);
         setPolls(response.data);
         setLoading(false);
       } catch (error) {

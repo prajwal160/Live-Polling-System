@@ -96,17 +96,73 @@ const activePoll = {
   options: [],
   results: {},
   startTime: null,
-  duration: 60000 // default 60 seconds
+  duration: 60000, // default 60 seconds
+  timer: null
 };
 
 const connectedUsers = new Map();
-const userSockets = new Map(); // Track user's socket IDs
-const teachers = new Set(); // Track teacher sockets
+const userSockets = new Map();
+const teachers = new Set();
 
-// Debug function to log connected users
-const logConnectedUsers = () => {
-  console.log('Connected users:', Array.from(connectedUsers.entries()));
-  console.log('Teachers:', Array.from(teachers));
+// Function to check if all students have answered
+const checkAllStudentsAnswered = () => {
+  // Get all student names (excluding teachers)
+  const studentNames = Array.from(connectedUsers.values())
+    .filter(name => !Array.from(teachers).some(teacherSocket => 
+      userSockets.get(teacherSocket) === name
+    ));
+
+  // Get all students who have answered
+  const answeredStudents = Object.keys(activePoll.results);
+
+  // Check if all students have answered
+  const allAnswered = studentNames.length > 0 && 
+    studentNames.every(student => answeredStudents.includes(student));
+
+  console.log('Students check:', {
+    total: studentNames.length,
+    answered: answeredStudents.length,
+    allAnswered
+  });
+
+  return allAnswered;
+};
+
+// Function to end the poll
+const endPoll = async () => {
+  if (activePoll.timer) {
+    clearTimeout(activePoll.timer);
+    activePoll.timer = null;
+  }
+
+  console.log('Ending poll with results:', activePoll.results);
+
+  try {
+    // Save poll to MongoDB
+    const poll = new Poll({
+      question: activePoll.question,
+      options: activePoll.options.map(opt => ({
+        text: opt.text,
+        isCorrect: opt.isCorrect
+      })),
+      results: activePoll.results,
+      startTime: new Date(activePoll.startTime),
+      endTime: new Date(),
+      duration: activePoll.duration
+    });
+    
+    await poll.save();
+    console.log('Poll saved to database');
+    
+    // Broadcast end to all clients with final results
+    io.emit('poll:end', activePoll.results);
+    
+    // Clear active poll
+    activePoll.question = null;
+    activePoll.results = {};
+  } catch (error) {
+    console.error('Error saving poll:', error);
+  }
 };
 
 io.on('connection', (socket) => {
@@ -120,6 +176,7 @@ io.on('connection', (socket) => {
       socket.teacherName = name;
       socket.isTeacher = true;
       teachers.add(socket.id);
+      userSockets.set(socket.id, name);
       if (activePoll.question) {
         socket.emit('poll:current', activePoll);
       }
@@ -133,6 +190,7 @@ io.on('connection', (socket) => {
         }
       }
       connectedUsers.set(socket.id, name);
+      userSockets.set(socket.id, name);
       io.emit('users:update', Array.from(connectedUsers.values()));
       
       if (activePoll.question) {
@@ -150,14 +208,13 @@ io.on('connection', (socket) => {
 
   // Handle teacher joining
   socket.on('teacher:join', ({ name }) => {
-    console.log(`Teacher joined: ${name}, socket ID: ${socket.id}`);
+    console.log(`Teacher joined: ${name}`);
     socket.teacherName = name;
     socket.isTeacher = true;
     teachers.add(socket.id);
+    userSockets.set(socket.id, name);
     
-    // Send current poll and connected users to teacher
     if (activePoll.question) {
-      console.log('Sending current poll to teacher');
       socket.emit('poll:current', activePoll);
     }
     socket.emit('users:update', Array.from(connectedUsers.values()));
@@ -165,7 +222,7 @@ io.on('connection', (socket) => {
 
   // Handle student joining
   socket.on('student:join', ({ name }) => {
-    console.log(`Student joined: ${name}, socket ID: ${socket.id}`);
+    console.log(`Student joined: ${name}`);
     socket.studentName = name;
     
     // Remove old socket ID if exists
@@ -177,14 +234,13 @@ io.on('connection', (socket) => {
     }
     
     connectedUsers.set(socket.id, name);
+    userSockets.set(socket.id, name);
     io.emit('users:update', Array.from(connectedUsers.values()));
-    logConnectedUsers();
     
     if (activePoll.question) {
       const now = Date.now();
       const elapsed = now - activePoll.startTime;
       if (elapsed < activePoll.duration) {
-        console.log(`Sending current poll to student: ${name}`);
         socket.emit('poll:current', {
           ...activePoll,
           startTime: now - elapsed
@@ -213,34 +269,14 @@ io.on('connection', (socket) => {
     console.log('Broadcasting new poll to all clients:', activePoll);
     io.emit('poll:new', activePoll);
 
-    // Auto-close poll after duration
-    setTimeout(async () => {
+    // Set timer for auto-close
+    if (activePoll.timer) {
+      clearTimeout(activePoll.timer);
+    }
+    
+    activePoll.timer = setTimeout(async () => {
       if (activePoll.question === pollData.question) {
-        console.log('Poll time ended, closing poll');
-        
-        // Save poll to MongoDB with complete data
-        try {
-          const poll = new Poll({
-            question: activePoll.question,
-            options: activePoll.options.map(opt => ({
-              text: opt.text,
-              isCorrect: opt.isCorrect
-            })),
-            results: activePoll.results,
-            startTime: new Date(activePoll.startTime),
-            endTime: new Date(activePoll.startTime + activePoll.duration),
-            duration: activePoll.duration
-          });
-          
-          const savedPoll = await poll.save();
-          console.log('Poll saved to database:', savedPoll);
-          
-          // Clear active poll and broadcast end
-          activePoll.question = null;
-          io.emit('poll:end', activePoll.results);
-        } catch (error) {
-          console.error('Error saving poll:', error);
-        }
+        await endPoll();
       }
     }, pollData.duration);
   });
@@ -257,6 +293,12 @@ io.on('connection', (socket) => {
         activePoll.results[socket.studentName] = answer;
         console.log('Broadcasting updated results:', activePoll.results);
         io.emit('poll:results', activePoll.results);
+
+        // Check if all students have answered
+        if (checkAllStudentsAnswered()) {
+          console.log('All students have answered, ending poll early');
+          endPoll();
+        }
       } else {
         console.log('Answer rejected: poll has ended');
       }
@@ -298,7 +340,6 @@ io.on('connection', (socket) => {
         // Remove the student from connected users
         connectedUsers.delete(studentSocketId);
         io.emit('users:update', Array.from(connectedUsers.values()));
-        logConnectedUsers();
       }
     }
   });
@@ -337,7 +378,6 @@ io.on('connection', (socket) => {
       if (!hasOtherSockets) {
         connectedUsers.delete(socket.id);
         io.emit('users:update', Array.from(connectedUsers.values()));
-        logConnectedUsers();
       }
     }
   });

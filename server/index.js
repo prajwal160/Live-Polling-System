@@ -283,7 +283,19 @@ io.on('connection', (socket) => {
         .find(([_, name]) => name === studentName)?.[0];
       
       if (studentSocketId) {
-        io.to(studentSocketId).emit('student:kicked');
+        // Send system message about the kick
+        const kickMessage = {
+          sender: 'System',
+          text: `${studentName} has been kicked from the session`,
+          timestamp: Date.now(),
+          isSystem: true
+        };
+        io.emit('chat:message', kickMessage);
+        
+        // Notify the kicked student to redirect
+        io.to(studentSocketId).emit('student:kicked', studentName);
+        
+        // Remove the student from connected users
         connectedUsers.delete(studentSocketId);
         io.emit('users:update', Array.from(connectedUsers.values()));
         logConnectedUsers();

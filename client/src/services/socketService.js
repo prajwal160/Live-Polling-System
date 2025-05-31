@@ -148,6 +148,17 @@ class SocketService {
       console.log('Received chat message:', message);
       store.dispatch(addMessage(message));
     });
+
+    // Handle student kick (only for redirect)
+    this.socket.on('student:kicked', (studentName) => {
+      console.log('Student was kicked:', studentName);
+      // Only handle redirect for the kicked student
+      const currentUser = store.getState().user;
+      if (currentUser.name === studentName) {
+        this.disconnect();
+        window.location.href = '/kicked';
+      }
+    });
   }
 
   handlePollUpdate(poll) {

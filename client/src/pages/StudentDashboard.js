@@ -5,7 +5,6 @@ import styled from 'styled-components';
 import socketService from '../services/socketService';
 import Chat from '../components/Chat';
 import Navbar from '../components/Navbar';
-import PollHistory from '../components/PollHistory';
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
@@ -13,7 +12,6 @@ const StudentDashboard = () => {
   const [hasAnswered, setHasAnswered] = useState(false);
   const { currentPoll, results, timeRemaining } = useSelector((state) => state.poll);
   const { name } = useSelector((state) => state.user);
-  const [showPollHistory, setShowPollHistory] = useState(false);
 
   useEffect(() => {
     // Check if user is authenticated
@@ -76,7 +74,7 @@ const StudentDashboard = () => {
     <>
       <Navbar 
         role="student"
-        onShowPollHistory={() => setShowPollHistory(true)}
+        onShowPollHistory={() => navigate('/poll-history')}
       />
       <PageContainer>
         <MainContent>
@@ -133,9 +131,6 @@ const StudentDashboard = () => {
         </MainContent>
         <Chat isTeacher={false} />
       </PageContainer>
-      {showPollHistory && (
-        <PollHistory onClose={() => setShowPollHistory(false)} />
-      )}
     </>
   );
 };
@@ -150,8 +145,8 @@ const PageContainer = styled.div`
 const MainContent = styled.div`
   display: flex;
   justify-content: center;
-  align-items: center;
-  min-height: 100vh;
+  align-items: flex-start;
+  min-height: calc(100vh - 64px);
   padding: 20px;
 `;
 
@@ -161,6 +156,7 @@ const WaitingMessage = styled.div`
   padding: 40px;
   border-radius: 10px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-top: 40px;
 
   h2 {
     margin-bottom: 10px;
@@ -178,6 +174,7 @@ const PollContainer = styled.div`
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   width: 100%;
   max-width: 600px;
+  margin-top: 40px;
 `;
 
 const Question = styled.div`

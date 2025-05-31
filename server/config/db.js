@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/polling-app', {
+    const conn = await mongoose.connect('mongodb+srv://bt20cse160:GRgF5I1dh4Pf2OV7@cluster0.v4v4b.mongodb.net/live-polling?retryWrites=true&w=majority', {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });

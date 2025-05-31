@@ -218,24 +218,29 @@ io.on('connection', (socket) => {
       if (activePoll.question === pollData.question) {
         console.log('Poll time ended, closing poll');
         
-        // Save poll to MongoDB
+        // Save poll to MongoDB with complete data
         try {
           const poll = new Poll({
             question: activePoll.question,
-            options: activePoll.options,
+            options: activePoll.options.map(opt => ({
+              text: opt.text,
+              isCorrect: opt.isCorrect
+            })),
             results: activePoll.results,
             startTime: new Date(activePoll.startTime),
             endTime: new Date(activePoll.startTime + activePoll.duration),
             duration: activePoll.duration
           });
-          await poll.save();
-          console.log('Poll saved to database');
+          
+          const savedPoll = await poll.save();
+          console.log('Poll saved to database:', savedPoll);
+          
+          // Clear active poll and broadcast end
+          activePoll.question = null;
+          io.emit('poll:end', activePoll.results);
         } catch (error) {
           console.error('Error saving poll:', error);
         }
-
-        activePoll.question = null;
-        io.emit('poll:end', activePoll.results);
       }
     }, pollData.duration);
   });
@@ -324,6 +329,17 @@ io.on('connection', (socket) => {
       }
     }
   });
+});
+
+// API endpoint to fetch poll history
+app.get('/api/polls/history', async (req, res) => {
+  try {
+    const polls = await Poll.find().sort({ startTime: -1 });
+    res.json(polls);
+  } catch (error) {
+    console.error('Error fetching poll history:', error);
+    res.status(500).json({ message: 'Error fetching poll history' });
+  }
 });
 
 const PORT = process.env.PORT || 5000;

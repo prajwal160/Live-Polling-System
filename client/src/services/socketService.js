@@ -81,6 +81,16 @@ class SocketService {
       }
     });
 
+    this.setupEventListeners();
+  }
+
+  setupEventListeners() {
+    if (!this.socket) {
+      console.error('Cannot setup listeners: socket is null');
+      return;
+    }
+
+    // Handle connection errors
     this.socket.on('connect_error', (error) => {
       console.error('Connection error:', error);
       this.isConnecting = false;
@@ -96,7 +106,91 @@ class SocketService {
       }
     });
 
-    this.setupEventListeners();
+    // Handle new polls
+    this.socket.on('poll:new', (poll) => {
+      console.log('Received new poll event:', poll);
+      this.handlePollUpdate(poll);
+    });
+
+    // Handle current poll state
+    this.socket.on('poll:current', (poll) => {
+      console.log('Received current poll:', poll);
+      this.handlePollUpdate(poll);
+    });
+
+    // Handle poll results
+    this.socket.on('poll:results', (results) => {
+      console.log('Received poll results:', results);
+      store.dispatch(updateResults(results));
+    });
+
+    // Handle poll end
+    this.socket.on('poll:end', (results) => {
+      console.log('Poll ended with results:', results);
+      if (this.activeTimer) {
+        clearInterval(this.activeTimer);
+        this.activeTimer = null;
+      }
+      if (results) {
+        store.dispatch(updateResults(results));
+      }
+      store.dispatch(clearPoll());
+    });
+
+    // Handle user updates
+    this.socket.on('users:update', (users) => {
+      console.log('Received users update:', users);
+      store.dispatch(updateConnectedUsers(users));
+    });
+
+    // Handle chat messages
+    this.socket.on('chat:message', (message) => {
+      console.log('Received chat message:', message);
+      store.dispatch(addMessage(message));
+    });
+  }
+
+  handlePollUpdate(poll) {
+    if (!poll || !poll.question) {
+      console.error('Received invalid poll data:', poll);
+      return;
+    }
+
+    // Clear any existing timer
+    if (this.activeTimer) {
+      clearInterval(this.activeTimer);
+      this.activeTimer = null;
+    }
+
+    // Update the store with the new poll
+    store.dispatch(setPoll(poll));
+    
+    if (poll.results) {
+      store.dispatch(updateResults(poll.results));
+    }
+
+    // Calculate remaining time
+    const startTime = poll.startTime || Date.now();
+    const elapsed = Date.now() - startTime;
+    const initialRemaining = poll.duration - elapsed;
+
+    if (initialRemaining > 0) {
+      store.dispatch(updateTimeRemaining(initialRemaining));
+      
+      // Start the timer
+      this.activeTimer = setInterval(() => {
+        const currentRemaining = poll.duration - (Date.now() - startTime);
+        if (currentRemaining <= 0) {
+          clearInterval(this.activeTimer);
+          this.activeTimer = null;
+          store.dispatch(clearPoll());
+        } else {
+          store.dispatch(updateTimeRemaining(currentRemaining));
+        }
+      }, 1000);
+    } else {
+      store.dispatch(clearPoll());
+    }
   }
 
   handleConnectionError() {
@@ -112,114 +206,6 @@ class SocketService {
     } else {
       console.error('Max connection retries reached');
     }
-  }
-
-  setupEventListeners() {
-    if (!this.socket) {
-      console.error('Cannot setup listeners: socket is null');
-      return;
-    }
-
-    this.socket.on('poll:new', (poll) => {
-      console.log('Received new poll event:', poll);
-      
-      if (this.activeTimer) {
-        clearInterval(this.activeTimer);
-        this.activeTimer = null;
-      }
-
-      if (!poll || !poll.question) {
-        console.error('Received invalid poll data:', poll);
-        return;
-      }
-
-      store.dispatch(setPoll(poll));
-      console.log('Dispatched poll to Redux store');
-      
-      const startTime = Date.now();
-      this.activeTimer = setInterval(() => {
-        const elapsed = Date.now() - startTime;
-        const remaining = poll.duration - elapsed;
-        
-        if (remaining <= 0) {
-          clearInterval(this.activeTimer);
-          this.activeTimer = null;
-          store.dispatch(clearPoll());
-        } else {
-          store.dispatch(updateTimeRemaining(remaining));
-        }
-      }, 1000);
-    });
-
-    this.socket.on('poll:current', (poll) => {
-      console.log('Received current poll:', poll);
-      if (poll && poll.question) {
-        if (this.activeTimer) {
-          clearInterval(this.activeTimer);
-          this.activeTimer = null;
-        }
-
-        store.dispatch(setPoll(poll));
-        console.log('Dispatched current poll to Redux store');
-        
-        if (poll.results) {
-          store.dispatch(updateResults(poll.results));
-          console.log('Updated poll results in Redux store');
-        }
-        
-        const elapsed = Date.now() - poll.startTime;
-        const remaining = poll.duration - elapsed;
-        
-        if (remaining > 0) {
-          this.activeTimer = setInterval(() => {
-            const currentRemaining = poll.duration - (Date.now() - poll.startTime);
-            if (currentRemaining <= 0) {
-              clearInterval(this.activeTimer);
-              this.activeTimer = null;
-              store.dispatch(clearPoll());
-            } else {
-              store.dispatch(updateTimeRemaining(currentRemaining));
-            }
-          }, 1000);
-        }
-      }
-    });
-
-    this.socket.on('poll:results', (results) => {
-      console.log('Received poll results:', results);
-      store.dispatch(updateResults(results));
-      console.log('Updated results in Redux store');
-    });
-
-    this.socket.on('poll:end', () => {
-      console.log('Poll ended');
-      if (this.activeTimer) {
-        clearInterval(this.activeTimer);
-        this.activeTimer = null;
-      }
-      store.dispatch(clearPoll());
-    });
-
-    this.socket.on('users:update', (users) => {
-      console.log('Users updated:', users);
-      store.dispatch(updateConnectedUsers(users));
-    });
-
-    this.socket.on('error', (error) => {
-      console.error('Socket error:', error);
-      this.isConnecting = false;
-    });
-
-    this.socket.on('chat:message', (message) => {
-      console.log('Received chat message:', message);
-      store.dispatch(addMessage(message));
-    });
-
-    this.socket.on('student:kicked', () => {
-      console.log('Student was kicked');
-      this.disconnect();
-      window.location.href = '/kicked';
-    });
   }
 
   disconnect() {

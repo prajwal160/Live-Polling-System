@@ -1,19 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 
-const PollHistory = ({ onClose }) => {
+const PollHistory = () => {
+  const navigate = useNavigate();
   const [polls, setPolls] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const { role } = useSelector((state) => state.user);
 
   useEffect(() => {
     const fetchPolls = async () => {
       try {
-        const response = await fetch('/api/polls');
-        const data = await response.json();
-        setPolls(data);
+        const response = await axios.get('http://localhost:5000/api/polls/history');
+        setPolls(response.data);
+        setLoading(false);
       } catch (error) {
         console.error('Error fetching polls:', error);
-      } finally {
+        setError('Failed to load poll history');
         setLoading(false);
       }
     };
@@ -21,222 +27,218 @@ const PollHistory = ({ onClose }) => {
     fetchPolls();
   }, []);
 
+  const handleBack = () => {
+    navigate(role === 'teacher' ? '/teacher' : '/student');
+  };
+
+  if (loading) return <LoadingMessage>Loading poll history...</LoadingMessage>;
+  if (error) return <ErrorMessage>{error}</ErrorMessage>;
+  if (polls.length === 0) return <EmptyMessage>No polls in history</EmptyMessage>;
+
   return (
-    <ModalOverlay>
-      <ModalContent>
-        <ModalHeader>
-          <ModalTitle>Poll History</ModalTitle>
-          <CloseButton onClick={onClose}>&times;</CloseButton>
-        </ModalHeader>
-
-        <ModalBody>
-          {loading ? (
-            <LoadingMessage>Loading poll history...</LoadingMessage>
-          ) : polls.length === 0 ? (
-            <EmptyMessage>No polls in history</EmptyMessage>
-          ) : (
-            <PollList>
-              {polls.map((poll, index) => (
-                <PollCard key={poll._id || index}>
-                  <PollQuestion>{poll.question}</PollQuestion>
-                  <PollOptions>
-                    {poll.options.map((option, optIndex) => {
-                      const votes = Object.values(poll.results).filter(
-                        vote => vote === option
-                      ).length;
-                      const totalVotes = Object.keys(poll.results).length;
-                      const percentage = totalVotes
-                        ? ((votes / totalVotes) * 100).toFixed(1)
-                        : 0;
-
-                      return (
-                        <OptionItem key={optIndex}>
-                          <OptionHeader>
-                            <OptionText>{option}</OptionText>
-                            <VoteInfo>{votes} votes ({percentage}%)</VoteInfo>
-                          </OptionHeader>
-                          <ProgressBar>
-                            <ProgressFill width={percentage} />
-                          </ProgressBar>
-                        </OptionItem>
-                      );
-                    })}
-                  </PollOptions>
-                  <PollInfo>
-                    <InfoItem>
-                      <InfoLabel>Started:</InfoLabel>
-                      <InfoValue>{new Date(poll.startTime).toLocaleString()}</InfoValue>
-                    </InfoItem>
-                    <InfoItem>
-                      <InfoLabel>Duration:</InfoLabel>
-                      <InfoValue>{poll.duration / 1000} seconds</InfoValue>
-                    </InfoItem>
-                    <InfoItem>
-                      <InfoLabel>Total Responses:</InfoLabel>
-                      <InfoValue>{Object.keys(poll.results).length}</InfoValue>
-                    </InfoItem>
-                  </PollInfo>
-                </PollCard>
-              ))}
-            </PollList>
-          )}
-        </ModalBody>
-      </ModalContent>
-    </ModalOverlay>
+    <Container>
+      <Header>
+        <BackButton onClick={handleBack}>
+          ← Back to Dashboard
+        </BackButton>
+        <Title>Poll History</Title>
+      </Header>
+      <PollList>
+        {polls.map((poll, index) => (
+          <PollCard key={poll._id}>
+            <PollNumber>Poll #{polls.length - index}</PollNumber>
+            <Question>{poll.question}</Question>
+            <OptionsContainer>
+              {poll.options.map((option, optIndex) => {
+                const votes = Object.values(poll.results).filter(vote => vote === option.text).length;
+                const totalVotes = Object.keys(poll.results).length;
+                const percentage = totalVotes ? ((votes / totalVotes) * 100).toFixed(1) : 0;
+                
+                return (
+                  <OptionItem key={optIndex}>
+                    <OptionText>
+                      {option.text}
+                      {role === 'teacher' && option.isCorrect && (
+                        <CorrectBadge>✓ Correct</CorrectBadge>
+                      )}
+                    </OptionText>
+                    <VoteBar percentage={percentage}>
+                      <VotePercentage>{percentage}%</VotePercentage>
+                    </VoteBar>
+                    <VoteCount>{votes} vote{votes !== 1 ? 's' : ''}</VoteCount>
+                  </OptionItem>
+                );
+              })}
+            </OptionsContainer>
+            <PollInfo>
+              <InfoItem>
+                Duration: {poll.duration / 1000}s
+              </InfoItem>
+              <InfoItem>
+                Date: {new Date(poll.startTime).toLocaleDateString()}
+              </InfoItem>
+              <InfoItem>
+                Time: {new Date(poll.startTime).toLocaleTimeString()}
+              </InfoItem>
+            </PollInfo>
+          </PollCard>
+        ))}
+      </PollList>
+    </Container>
   );
 };
 
-const ModalOverlay = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-`;
-
-const ModalContent = styled.div`
-  background: white;
-  border-radius: 12px;
-  width: 90%;
+const Container = styled.div`
+  padding: 20px;
   max-width: 800px;
-  max-height: 90vh;
-  display: flex;
-  flex-direction: column;
+  margin: 0 auto;
 `;
 
-const ModalHeader = styled.div`
-  padding: 1.5rem;
-  border-bottom: 1px solid #e0e0e0;
+const Header = styled.div`
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  margin-bottom: 30px;
+  gap: 20px;
 `;
 
-const ModalTitle = styled.h2`
-  margin: 0;
-  font-size: 1.5rem;
-  color: #2d3436;
-`;
-
-const CloseButton = styled.button`
-  background: none;
+const BackButton = styled.button`
+  background: #6c5ce7;
+  color: white;
   border: none;
-  font-size: 1.5rem;
-  color: #636e72;
+  padding: 10px 20px;
+  border-radius: 6px;
   cursor: pointer;
-  padding: 0.5rem;
-  
+  font-size: 14px;
+  transition: background 0.3s ease;
+
   &:hover {
-    color: #2d3436;
+    background: #5a4bd1;
   }
 `;
 
-const ModalBody = styled.div`
-  padding: 1.5rem;
-  overflow-y: auto;
-`;
-
-const LoadingMessage = styled.div`
+const Title = styled.h1`
+  color: #2c3e50;
   text-align: center;
-  padding: 2rem;
-  color: #636e72;
-`;
-
-const EmptyMessage = styled.div`
-  text-align: center;
-  padding: 2rem;
-  color: #636e72;
+  margin-bottom: 30px;
 `;
 
 const PollList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 20px;
 `;
 
 const PollCard = styled.div`
-  background: #f8f9fa;
-  border-radius: 8px;
-  padding: 1.5rem;
+  background: white;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 `;
 
-const PollQuestion = styled.h3`
-  margin: 0 0 1rem 0;
-  color: #2d3436;
-  font-size: 1.2rem;
+const PollNumber = styled.div`
+  font-size: 14px;
+  color: #6c5ce7;
+  font-weight: bold;
+  margin-bottom: 10px;
 `;
 
-const PollOptions = styled.div`
+const Question = styled.h2`
+  color: #2c3e50;
+  font-size: 18px;
+  margin-bottom: 20px;
+`;
+
+const OptionsContainer = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  margin-bottom: 1rem;
+  gap: 15px;
 `;
 
 const OptionItem = styled.div`
-  background: white;
-  padding: 1rem;
-  border-radius: 6px;
+  margin-bottom: 10px;
 `;
 
-const OptionHeader = styled.div`
+const OptionText = styled.div`
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.5rem;
-`;
-
-const OptionText = styled.span`
+  gap: 10px;
+  margin-bottom: 5px;
   font-weight: 500;
 `;
 
-const VoteInfo = styled.span`
-  color: #636e72;
-  font-size: 0.9rem;
+const CorrectBadge = styled.span`
+  background: #00b894;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
 `;
 
-const ProgressBar = styled.div`
-  height: 8px;
-  background: #e0e0e0;
-  border-radius: 4px;
+const VoteBar = styled.div`
+  background: #f0f0f0;
+  height: 24px;
+  border-radius: 12px;
+  position: relative;
   overflow: hidden;
+  
+  &:after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: ${props => props.percentage}%;
+    background: #6c5ce7;
+    transition: width 0.3s ease;
+  }
 `;
 
-const ProgressFill = styled.div`
-  height: 100%;
-  width: ${props => props.width}%;
-  background: #6c5ce7;
-  transition: width 0.3s ease;
+const VotePercentage = styled.span`
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: white;
+  z-index: 1;
+  font-size: 12px;
+  font-weight: bold;
+`;
+
+const VoteCount = styled.div`
+  font-size: 12px;
+  color: #666;
+  margin-top: 5px;
 `;
 
 const PollInfo = styled.div`
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid #e0e0e0;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-`;
-
-const InfoItem = styled.div`
   display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+  gap: 20px;
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid #eee;
 `;
 
-const InfoLabel = styled.span`
-  color: #636e72;
-  font-size: 0.9rem;
+const InfoItem = styled.span`
+  font-size: 14px;
+  color: #666;
 `;
 
-const InfoValue = styled.span`
-  color: #2d3436;
-  font-weight: 500;
+const LoadingMessage = styled.div`
+  text-align: center;
+  padding: 40px;
+  color: #666;
+`;
+
+const ErrorMessage = styled.div`
+  text-align: center;
+  padding: 40px;
+  color: #e74c3c;
+`;
+
+const EmptyMessage = styled.div`
+  text-align: center;
+  padding: 40px;
+  color: #666;
 `;
 
 export default PollHistory; 

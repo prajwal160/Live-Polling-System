@@ -7,6 +7,7 @@ import Welcome from './pages/Welcome';
 import StudentDashboard from './pages/StudentDashboard';
 import TeacherDashboard from './pages/TeacherDashboard';
 import KickedPage from './pages/KickedPage';
+import PollHistory from './components/PollHistory';
 
 function App() {
   useEffect(() => {
@@ -29,6 +30,7 @@ function App() {
           <Route path="/student" element={<StudentDashboard />} />
           <Route path="/teacher" element={<TeacherDashboard />} />
           <Route path="/kicked" element={<KickedPage />} />
+          <Route path="/poll-history" element={<PollHistory />} />
         </Routes>
       </Router>
     </Provider>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import socketService from '../services/socketService';
 import Chat from '../components/Chat';
@@ -7,6 +8,7 @@ import PollHistory from '../components/PollHistory';
 import Navbar from '../components/Navbar';
 
 const TeacherDashboard = () => {
+  const navigate = useNavigate();
   const [question, setQuestion] = useState('');
   const [options, setOptions] = useState([{ text: '', isCorrect: true }]);
   const [duration, setDuration] = useState(60);
@@ -85,7 +87,7 @@ const TeacherDashboard = () => {
     <>
       <Navbar 
         role="teacher"
-        onShowPollHistory={() => setShowPollHistory(true)}
+        onShowPollHistory={() => navigate('/poll-history')}
       />
       <Container>
         <Header>
@@ -396,63 +398,76 @@ const Question = styled.div`
 
 const ResultsGrid = styled.div`
   display: flex;
+  flex-direction: column;
   gap: 20px;
   margin-bottom: 20px;
 `;
 
 const ResultBar = styled.div`
-  flex: 1;
-  background: #f0f0f0;
+  width: 100%;
+  background: white;
   border-radius: 8px;
   overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 15px;
 `;
 
 const ResultBarHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px;
+  margin-bottom: 10px;
 `;
 
 const OptionInfo = styled.div`
   display: flex;
   align-items: center;
+  gap: 10px;
 `;
 
 const OptionDot = styled.div`
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background: ${props => props.isCorrect ? '#4caf50' : '#f44336'};
-  margin-right: 10px;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
 `;
 
 const OptionText = styled.p`
-  font-size: 14px;
+  font-size: 16px;
   color: ${props => props.isCorrect ? '#4caf50' : '#f44336'};
+  font-weight: 500;
 `;
 
 const Percentage = styled.div`
-  font-size: 14px;
-  color: #636e72;
+  font-size: 16px;
+  color: #2d3436;
+  font-weight: 500;
 `;
 
 const Progress = styled.div`
-  height: 10px;
-  background: #e0e0e0;
+  height: 12px;
+  background: #f0f0f0;
+  border-radius: 6px;
   overflow: hidden;
-  border-radius: 8px;
+  margin: 10px 0;
 `;
 
 const ProgressFill = styled.div`
   height: 100%;
   background: ${props => props.isCorrect ? '#4caf50' : '#f44336'};
   width: ${props => props.width}%;
+  transition: width 0.3s ease;
 `;
 
 const VoteCount = styled.div`
   font-size: 14px;
   color: #636e72;
+  margin-top: 5px;
 `;
 
 const Timer = styled.div`

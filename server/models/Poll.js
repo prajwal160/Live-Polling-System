@@ -6,8 +6,14 @@ const pollSchema = new mongoose.Schema({
     required: true
   },
   options: [{
-    type: String,
-    required: true
+    text: {
+      type: String,
+      required: true
+    },
+    isCorrect: {
+      type: Boolean,
+      required: true
+    }
   }],
   results: {
     type: Map,

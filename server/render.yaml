@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: live-polling-backend
+    env: node
+    buildCommand: npm install
+    startCommand: node index.js
+    envVars:
+      - key: MONGODB_URI
+        value: mongodb+srv://bt20cse160:GRgF5I1dh4Pf2OV7@cluster0.v4v4b.mongodb.net/live-polling?retryWrites=true&w=majority
+      - key: NODE_ENV
+        value: production
+      - key: ALLOWED_ORIGINS
+        value: https://your-frontend-vercel-url.vercel.app 

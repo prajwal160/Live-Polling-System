@@ -1,8 +1,8 @@
+require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
 const cors = require('cors');
-require('dotenv').config();
 const connectDB = require('./config/db');
 const Poll = require('./models/Poll');
 

@@ -15,7 +15,9 @@ const server = http.createServer(app);
 // Get allowed origins from environment variable or default to localhost
 const allowedOrigins = process.env.ALLOWED_ORIGINS 
   ? process.env.ALLOWED_ORIGINS.split(',') 
-  : ["http://localhost:3000"];
+  : ["https://live-poll-system.vercel.app"];
+
+console.log('Configured ALLOWED_ORIGINS:', allowedOrigins);
 
 const io = socketIo(server, {
   cors: {

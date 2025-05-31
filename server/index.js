@@ -3,6 +3,11 @@ const http = require('http');
 const socketIo = require('socket.io');
 const cors = require('cors');
 require('dotenv').config();
+const connectDB = require('./config/db');
+const Poll = require('./models/Poll');
+
+// Connect to MongoDB
+connectDB();
 
 const app = express();
 const server = http.createServer(app);
@@ -75,6 +80,16 @@ app.get('/', (req, res) => {
   `);
 });
 
+// Get all poll history
+app.get('/api/polls', async (req, res) => {
+  try {
+    const polls = await Poll.find().sort({ endTime: -1 });
+    res.json(polls);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Store active polls and connected users
 const activePoll = {
   question: null,
@@ -85,41 +100,91 @@ const activePoll = {
 };
 
 const connectedUsers = new Map();
-const pollHistory = [];
+const userSockets = new Map(); // Track user's socket IDs
+const teachers = new Set(); // Track teacher sockets
 
 // Debug function to log connected users
 const logConnectedUsers = () => {
   console.log('Connected users:', Array.from(connectedUsers.entries()));
+  console.log('Teachers:', Array.from(teachers));
 };
 
 io.on('connection', (socket) => {
   console.log('New client connected, socket ID:', socket.id);
 
+  // Handle reconnection
+  const { name, role } = socket.handshake.query;
+  if (name && role) {
+    console.log(`User reconnecting - Name: ${name}, Role: ${role}`);
+    if (role === 'teacher') {
+      socket.teacherName = name;
+      socket.isTeacher = true;
+      teachers.add(socket.id);
+      if (activePoll.question) {
+        socket.emit('poll:current', activePoll);
+      }
+    } else if (role === 'student') {
+      socket.studentName = name;
+      // Remove old socket ID if exists
+      for (const [socketId, userName] of connectedUsers.entries()) {
+        if (userName === name) {
+          connectedUsers.delete(socketId);
+          break;
+        }
+      }
+      connectedUsers.set(socket.id, name);
+      io.emit('users:update', Array.from(connectedUsers.values()));
+      
+      if (activePoll.question) {
+        const now = Date.now();
+        const elapsed = now - activePoll.startTime;
+        if (elapsed < activePoll.duration) {
+          socket.emit('poll:current', {
+            ...activePoll,
+            startTime: now - elapsed
+          });
+        }
+      }
+    }
+  }
+
   // Handle teacher joining
-  socket.on('teacher:join', (teacherName) => {
-    console.log(`Teacher joined: ${teacherName}, socket ID: ${socket.id}`);
-    socket.teacherName = teacherName;
+  socket.on('teacher:join', ({ name }) => {
+    console.log(`Teacher joined: ${name}, socket ID: ${socket.id}`);
+    socket.teacherName = name;
     socket.isTeacher = true;
+    teachers.add(socket.id);
+    
+    // Send current poll and connected users to teacher
     if (activePoll.question) {
       console.log('Sending current poll to teacher');
       socket.emit('poll:current', activePoll);
     }
+    socket.emit('users:update', Array.from(connectedUsers.values()));
   });
 
   // Handle student joining
-  socket.on('student:join', (studentName) => {
-    console.log(`Student joined: ${studentName}, socket ID: ${socket.id}`);
-    socket.studentName = studentName;
-    connectedUsers.set(socket.id, studentName);
+  socket.on('student:join', ({ name }) => {
+    console.log(`Student joined: ${name}, socket ID: ${socket.id}`);
+    socket.studentName = name;
+    
+    // Remove old socket ID if exists
+    for (const [socketId, userName] of connectedUsers.entries()) {
+      if (userName === name) {
+        connectedUsers.delete(socketId);
+        break;
+      }
+    }
+    
+    connectedUsers.set(socket.id, name);
     io.emit('users:update', Array.from(connectedUsers.values()));
     logConnectedUsers();
     
-    // Send current poll if exists
     if (activePoll.question) {
       const now = Date.now();
       const elapsed = now - activePoll.startTime;
       if (elapsed < activePoll.duration) {
-        console.log(`Sending current poll to student: ${studentName}`);
+        console.log(`Sending current poll to student: ${name}`);
         socket.emit('poll:current', {
           ...activePoll,
           startTime: now - elapsed
@@ -129,7 +194,7 @@ io.on('connection', (socket) => {
   });
 
   // Handle new poll creation
-  socket.on('poll:create', (pollData) => {
+  socket.on('poll:create', async (pollData) => {
     console.log('Received poll creation request:', pollData);
     
     if (!socket.isTeacher) {
@@ -146,18 +211,29 @@ io.on('connection', (socket) => {
     activePoll.duration = pollData.duration;
 
     console.log('Broadcasting new poll to all clients:', activePoll);
-    console.log('Connected clients:', io.engine.clientsCount);
-    console.log('Connected sockets:', Array.from(io.sockets.sockets.keys()));
-    
-    // Broadcast to everyone
     io.emit('poll:new', activePoll);
-    console.log('Poll broadcast completed');
 
     // Auto-close poll after duration
-    setTimeout(() => {
+    setTimeout(async () => {
       if (activePoll.question === pollData.question) {
         console.log('Poll time ended, closing poll');
-        pollHistory.push({ ...activePoll, endTime: Date.now() });
+        
+        // Save poll to MongoDB
+        try {
+          const poll = new Poll({
+            question: activePoll.question,
+            options: activePoll.options,
+            results: activePoll.results,
+            startTime: new Date(activePoll.startTime),
+            endTime: new Date(activePoll.startTime + activePoll.duration),
+            duration: activePoll.duration
+          });
+          await poll.save();
+          console.log('Poll saved to database');
+        } catch (error) {
+          console.error('Error saving poll:', error);
+        }
+
         activePoll.question = null;
         io.emit('poll:end', activePoll.results);
       }
@@ -211,20 +287,42 @@ io.on('connection', (socket) => {
   });
 
   // Handle poll history request
-  socket.on('poll:history', () => {
-    if (socket.isTeacher) {
-      socket.emit('poll:history', pollHistory);
+  socket.on('poll:history', async () => {
+    try {
+      const polls = await Poll.find().sort({ endTime: -1 });
+      socket.emit('poll:history', polls);
+    } catch (error) {
+      console.error('Error fetching poll history:', error);
+      socket.emit('error', 'Failed to fetch poll history');
     }
   });
 
   // Handle disconnection
   socket.on('disconnect', () => {
-    if (!socket.isTeacher) {
-      connectedUsers.delete(socket.id);
-      io.emit('users:update', Array.from(connectedUsers.values()));
+    console.log('Client disconnected, socket ID:', socket.id);
+    
+    // Remove from teachers set if it was a teacher
+    if (socket.isTeacher) {
+      teachers.delete(socket.id);
     }
-    console.log(`Client disconnected: ${socket.id}`);
-    logConnectedUsers();
+    
+    // Handle student disconnection
+    if (connectedUsers.has(socket.id)) {
+      const userName = connectedUsers.get(socket.id);
+      // Only remove user if they don't have another active socket
+      let hasOtherSockets = false;
+      for (const [otherSocketId, otherUserName] of connectedUsers.entries()) {
+        if (otherSocketId !== socket.id && otherUserName === userName) {
+          hasOtherSockets = true;
+          break;
+        }
+      }
+      if (!hasOtherSockets) {
+        connectedUsers.delete(socket.id);
+        io.emit('users:update', Array.from(connectedUsers.values()));
+        logConnectedUsers();
+      }
+    }
   });
 });
 

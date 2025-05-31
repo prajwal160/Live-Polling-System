@@ -1,20 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import socketService from '../services/socketService';
+import { addMessage } from '../store/slices/pollSlice';
 
 const Chat = ({ isTeacher }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('chat');
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
-  const [kickedStudents, setKickedStudents] = useState(new Set());
+  const [kickedStudents, setKickedStudents] = useState([]);
   const { name, role } = useSelector((state) => state.user);
-  const { connectedUsers, messages: storeMessages } = useSelector((state) => state.poll);
+  const { connectedUsers, messages: storeMessages, kickedUsers } = useSelector((state) => state.poll);
+  const dispatch = useDispatch();
+
+  // Load kicked students from localStorage
+  useEffect(() => {
+    const storedKickedStudents = JSON.parse(localStorage.getItem('kickedStudents') || '[]');
+    setKickedStudents(storedKickedStudents);
+  }, []);
 
   useEffect(() => {
     setMessages(storeMessages || []);
   }, [storeMessages]);
+
+  // Save kicked students to localStorage whenever it changes
+  useEffect(() => {
+    if (kickedStudents.length > 0) {
+      localStorage.setItem('kickedStudents', JSON.stringify(kickedStudents));
+    }
+  }, [kickedStudents]);
 
   const handleSendMessage = () => {
     if (message.trim()) {
@@ -26,14 +41,28 @@ const Chat = ({ isTeacher }) => {
   const handleKickStudent = (studentName) => {
     if (isTeacher) {
       socketService.kickStudent(studentName);
-      setKickedStudents(prev => new Set([...prev, studentName]));
-      setMessages([...messages, {
+      setKickedStudents(prev => {
+        const newKickedStudents = [...prev];
+        if (!newKickedStudents.includes(studentName)) {
+          newKickedStudents.push(studentName);
+        }
+        localStorage.setItem('kickedStudents', JSON.stringify(newKickedStudents));
+        return newKickedStudents;
+      });
+      // Add kick message to chat
+      const kickMessage = {
         sender: 'System',
         text: `${studentName} has been kicked from the session`,
         timestamp: Date.now(),
         isSystem: true
-      }]);
+      };
+      dispatch(addMessage(kickMessage));
     }
+  };
+
+  // Function to check if a student is kicked
+  const isStudentKicked = (studentName) => {
+    return kickedStudents.includes(studentName) || kickedUsers.includes(studentName);
   };
 
   const toggleChat = () => {
@@ -108,7 +137,7 @@ const Chat = ({ isTeacher }) => {
                       {student === name && " (You)"}
                     </ParticipantName>
                     {isTeacher && student !== name && (
-                      kickedStudents.has(student) ? (
+                      isStudentKicked(student) ? (
                         <KickedButton disabled>Kicked</KickedButton>
                       ) : (
                         <KickButton onClick={() => handleKickStudent(student)}>
@@ -257,6 +286,22 @@ const MessageBubble = styled.div`
     return props.isOwn ? 'flex-end' : 'flex-start';
   }};
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  border: ${props => props.isSystem ? '1px solid #f5c6cb' : 'none'};
+  font-style: ${props => props.isSystem ? 'italic' : 'normal'};
+  margin: ${props => props.isSystem ? '10px 0' : '5px 0'};
+  
+  animation: ${props => props.isSystem ? 'fadeIn 0.5s ease' : 'none'};
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 `;
 
 const SenderName = styled.div`
@@ -300,18 +345,30 @@ const KickButton = styled.button`
   border-radius: 4px;
   cursor: pointer;
   font-size: 12px;
+  transition: all 0.3s ease;
 
   &:hover {
     background: #ff6b81;
+    transform: scale(1.05);
+  }
+
+  &:active {
+    transform: scale(0.95);
   }
 `;
 
 const KickedButton = styled(KickButton)`
   background: #bdc3c7;
   cursor: not-allowed;
+  opacity: 0.7;
 
   &:hover {
     background: #bdc3c7;
+    transform: none;
+  }
+
+  &:active {
+    transform: none;
   }
 `;
 

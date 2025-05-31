@@ -1,16 +1,36 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import socketService from '../services/socketService';
 import Chat from '../components/Chat';
+import Navbar from '../components/Navbar';
+import PollHistory from '../components/PollHistory';
 
 const StudentDashboard = () => {
+  const navigate = useNavigate();
   const [selectedOption, setSelectedOption] = useState('');
   const [hasAnswered, setHasAnswered] = useState(false);
   const { currentPoll, results, timeRemaining } = useSelector((state) => state.poll);
   const { name } = useSelector((state) => state.user);
+  const [showPollHistory, setShowPollHistory] = useState(false);
 
   useEffect(() => {
+    // Check if user is authenticated
+    if (!name) {
+      navigate('/');
+      return;
+    }
+
+    // Handle page refresh
+    const handleBeforeUnload = () => {
+      // Clear any stored state
+      localStorage.removeItem('user');
+      sessionStorage.removeItem('user');
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
     console.log('Student dashboard mounted, joining as:', name);
     socketService.connect();
     socketService.joinAsStudent(name);
@@ -18,8 +38,9 @@ const StudentDashboard = () => {
     return () => {
       console.log('Student dashboard unmounting, disconnecting socket');
       socketService.disconnect();
+      window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [name]);
+  }, [name, navigate]);
 
   useEffect(() => {
     if (currentPoll) {
@@ -52,61 +73,70 @@ const StudentDashboard = () => {
   };
 
   return (
-    <PageContainer>
-      <MainContent>
-        {!currentPoll ? (
-          <WaitingMessage>
-            <h2>Welcome, {name}</h2>
-            <p>Waiting for the teacher to start a poll...</p>
-          </WaitingMessage>
-        ) : (
-          <PollContainer>
-            <Question>{currentPoll.question}</Question>
-            <Timer>Time remaining: {Math.ceil(timeRemaining / 1000)}s</Timer>
-            
-            <OptionsContainer>
-              {currentPoll.options.map((option, index) => (
-                <OptionWrapper key={index}>
-                  <Option
-                    selected={selectedOption === option.text}
-                    disabled={hasAnswered}
-                    onClick={() => !hasAnswered && setSelectedOption(option.text)}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                      <OptionLetter selected={selectedOption === option.text}>
-                        {String.fromCharCode(65 + index)}
-                      </OptionLetter>
-                      <OptionText>{option.text}</OptionText>
-                    </div>
-                    {hasAnswered && (
-                      <div style={{ marginTop: '10px' }}>
-                        <Progress>
-                          <ProgressFill 
-                            width={calculatePercentage(option)}
-                            isCorrect={option.isCorrect}
-                          />
-                        </Progress>
-                        <VoteCount>
-                          {getVotesForOption(option)} votes ({calculatePercentage(option)}%)
-                        </VoteCount>
+    <>
+      <Navbar 
+        role="student"
+        onShowPollHistory={() => setShowPollHistory(true)}
+      />
+      <PageContainer>
+        <MainContent>
+          {!currentPoll ? (
+            <WaitingMessage>
+              <h2>Welcome, {name}</h2>
+              <p>Waiting for the teacher to start a poll...</p>
+            </WaitingMessage>
+          ) : (
+            <PollContainer>
+              <Question>{currentPoll.question}</Question>
+              <Timer>Time remaining: {Math.ceil(timeRemaining / 1000)}s</Timer>
+              
+              <OptionsContainer>
+                {currentPoll.options.map((option, index) => (
+                  <OptionWrapper key={index}>
+                    <Option
+                      selected={selectedOption === option.text}
+                      disabled={hasAnswered}
+                      onClick={() => !hasAnswered && setSelectedOption(option.text)}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <OptionLetter selected={selectedOption === option.text}>
+                          {String.fromCharCode(65 + index)}
+                        </OptionLetter>
+                        <OptionText>{option.text}</OptionText>
                       </div>
-                    )}
-                  </Option>
-                </OptionWrapper>
-              ))}
-            </OptionsContainer>
+                      {hasAnswered && (
+                        <div style={{ marginTop: '10px' }}>
+                          <Progress>
+                            <ProgressFill 
+                              width={calculatePercentage(option)}
+                              isCorrect={option.isCorrect}
+                            />
+                          </Progress>
+                          <VoteCount>
+                            {getVotesForOption(option)} votes ({calculatePercentage(option)}%)
+                          </VoteCount>
+                        </div>
+                      )}
+                    </Option>
+                  </OptionWrapper>
+                ))}
+              </OptionsContainer>
 
-            <SubmitButton
-              onClick={handleSubmit}
-              disabled={!selectedOption || hasAnswered}
-            >
-              Submit Answer
-            </SubmitButton>
-          </PollContainer>
-        )}
-      </MainContent>
-      <Chat isTeacher={false} />
-    </PageContainer>
+              <SubmitButton
+                onClick={handleSubmit}
+                disabled={!selectedOption || hasAnswered}
+              >
+                Submit Answer
+              </SubmitButton>
+            </PollContainer>
+          )}
+        </MainContent>
+        <Chat isTeacher={false} />
+      </PageContainer>
+      {showPollHistory && (
+        <PollHistory onClose={() => setShowPollHistory(false)} />
+      )}
+    </>
   );
 };
 
@@ -114,6 +144,7 @@ const PageContainer = styled.div`
   min-height: 100vh;
   background-color: #f5f5f5;
   position: relative;
+  padding-top: 64px; /* Add padding for navbar */
 `;
 
 const MainContent = styled.div`

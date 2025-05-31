@@ -42,19 +42,43 @@ class SocketService {
       this.socket = null;
     }
 
+    // Get stored user info from localStorage and Redux store
+    const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+    const storeState = store.getState();
+    const currentUser = storeState.user || {};
+
+    // Use either stored or current user data
+    const userData = {
+      name: currentUser.name || storedUser.name,
+      role: currentUser.role || storedUser.role
+    };
+
+    // Save current user data
+    if (userData.name && userData.role) {
+      localStorage.setItem('user', JSON.stringify(userData));
+    }
+
     this.socket = io(SOCKET_URL, {
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
       reconnectionAttempts: 5,
       transports: ['websocket'],
-      forceNew: true
+      forceNew: true,
+      query: userData
     });
 
     this.socket.on('connect', () => {
       console.log('Connected to server with ID:', this.socket.id);
       this.isConnecting = false;
       this.retryCount = 0;
+      
+      // Rejoin as teacher or student based on stored role
+      if (userData.role === 'teacher') {
+        this.joinAsTeacher(userData.name);
+      } else if (userData.role === 'student') {
+        this.joinAsStudent(userData.name);
+      }
     });
 
     this.socket.on('connect_error', (error) => {
@@ -216,36 +240,35 @@ class SocketService {
   }
 
   joinAsTeacher(name) {
-    if (this.socket?.connected) {
-      console.log('Joining as teacher:', name);
-      this.socket.emit('teacher:join', name);
-    } else {
-      console.error('Socket not connected');
-      this.connect();
-      if (this.retryCount < this.maxRetries) {
-        setTimeout(() => this.joinAsTeacher(name), 2000);
-      }
+    if (!this.socket?.connected) {
+      console.error('Cannot join: socket not connected');
+      return;
     }
+    this.socket.emit('teacher:join', { name });
   }
 
   joinAsStudent(name) {
-    if (this.socket?.connected) {
-      console.log('Joining as student:', name);
-      this.socket.emit('student:join', name);
-    } else {
-      console.error('Socket not connected');
-      this.connect();
-      if (this.retryCount < this.maxRetries) {
-        setTimeout(() => this.joinAsStudent(name), 2000);
-      }
+    if (!this.socket?.connected) {
+      console.error('Cannot join: socket not connected');
+      return;
     }
+    this.socket.emit('student:join', { name });
   }
 
   createPoll(pollData) {
     if (this.socket?.connected) {
       console.log('Creating poll with data:', pollData);
-      this.socket.emit('poll:create', pollData);
-      console.log('Poll creation request sent');
+      // Format the poll data properly
+      const formattedPollData = {
+        ...pollData,
+        duration: pollData.duration || 60000,
+        options: pollData.options.map(opt => ({
+          text: opt.text.trim(),
+          isCorrect: opt.isCorrect
+        })).filter(opt => opt.text)
+      };
+      this.socket.emit('poll:create', formattedPollData);
+      console.log('Poll creation request sent:', formattedPollData);
     } else {
       console.error('Socket not connected, current socket state:', {
         socket: this.socket ? 'exists' : 'null',

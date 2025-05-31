@@ -76,12 +76,12 @@ const StudentDashboard = () => {
         role="student"
         onShowPollHistory={() => navigate('/poll-history')}
       />
-      <PageContainer>
+      <PageContainer >
         <MainContent>
           {!currentPoll ? (
-            <WaitingMessage>
-              <h2>Welcome, {name}</h2>
-              <p>Waiting for the teacher to start a poll...</p>
+            <WaitingMessage  style={{backgroundColor: 'black'}}>
+              <h2 style={{color: 'white' }}>Welcome, {name}</h2>
+              <p  style={{color: 'aqua' }}>Waiting for the teacher to start a poll...</p>
             </WaitingMessage>
           ) : (
             <PollContainer>
@@ -137,7 +137,7 @@ const StudentDashboard = () => {
 
 const PageContainer = styled.div`
   min-height: 100vh;
-  background-color: #f5f5f5;
+  background-color:  #1E1E2F;
   position: relative;
   padding-top: 64px; /* Add padding for navbar */
 `;
@@ -153,9 +153,10 @@ const MainContent = styled.div`
 const WaitingMessage = styled.div`
   text-align: center;
   background: white;
-  padding: 40px;
+  padding: 60px;
   border-radius: 10px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: 0.5px solid rgb(206, 235, 235);
+  box-shadow: 0 2px 4px rgba(31, 236, 236, 0.1);
   margin-top: 40px;
 
   h2 {

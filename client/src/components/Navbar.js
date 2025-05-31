@@ -3,9 +3,9 @@ import styled from 'styled-components';
 
 const Navbar = ({ role, onShowPollHistory }) => {
   return (
-    <NavContainer>
+    <NavContainer  style={{backgroundColor: 'black' }}>
       <NavContent>
-        <NavTitle>
+        <NavTitle style={{ color: 'white'}}>
           {role === 'teacher' ? 'Teacher Dashboard' : 'Student Dashboard'}
         </NavTitle>
         <NavButtons>

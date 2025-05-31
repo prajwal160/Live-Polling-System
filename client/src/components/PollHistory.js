@@ -94,6 +94,7 @@ const Container = styled.div`
   padding: 20px;
   max-width: 800px;
   margin: 0 auto;
+  background-color: #1a1a1a;
 `;
 
 const Header = styled.div`
@@ -119,7 +120,7 @@ const BackButton = styled.button`
 `;
 
 const Title = styled.h1`
-  color: #2c3e50;
+  color: #e0e0e0;
   text-align: center;
   margin-bottom: 30px;
 `;
@@ -131,10 +132,11 @@ const PollList = styled.div`
 `;
 
 const PollCard = styled.div`
-  background: white;
+  background: #2d2d2d;
   border-radius: 10px;
   padding: 20px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  border: 1px solid #404040;
 `;
 
 const PollNumber = styled.div`
@@ -145,7 +147,7 @@ const PollNumber = styled.div`
 `;
 
 const Question = styled.h2`
-  color: #2c3e50;
+  color: #e0e0e0;
   font-size: 18px;
   margin-bottom: 20px;
 `;
@@ -166,6 +168,7 @@ const OptionText = styled.div`
   gap: 10px;
   margin-bottom: 5px;
   font-weight: 500;
+  color: #e0e0e0;
 `;
 
 const CorrectBadge = styled.span`
@@ -177,7 +180,7 @@ const CorrectBadge = styled.span`
 `;
 
 const VoteBar = styled.div`
-  background: #f0f0f0;
+  background: #404040;
   height: 24px;
   border-radius: 12px;
   position: relative;
@@ -208,7 +211,7 @@ const VotePercentage = styled.span`
 
 const VoteCount = styled.div`
   font-size: 12px;
-  color: #666;
+  color: #b0b0b0;
   margin-top: 5px;
 `;
 
@@ -217,30 +220,30 @@ const PollInfo = styled.div`
   gap: 20px;
   margin-top: 20px;
   padding-top: 15px;
-  border-top: 1px solid #eee;
+  border-top: 1px solid #404040;
 `;
 
 const InfoItem = styled.span`
   font-size: 14px;
-  color: #666;
+  color: #b0b0b0;
 `;
 
 const LoadingMessage = styled.div`
   text-align: center;
   padding: 40px;
-  color: #666;
+  color: #b0b0b0;
 `;
 
 const ErrorMessage = styled.div`
   text-align: center;
   padding: 40px;
-  color: #e74c3c;
+  color: #ff6b6b;
 `;
 
 const EmptyMessage = styled.div`
   text-align: center;
   padding: 40px;
-  color: #666;
+  color: #b0b0b0;
 `;
 
 export default PollHistory; 

@@ -92,14 +92,14 @@ const TeacherDashboard = () => {
       <Container>
         <Header>
           <OnlineIndicator>Online Now</OnlineIndicator>
-          <Title>Let's Get Started</Title>
-          <Subtitle>
+          <Title style={{ color: 'white' }}>Let's Get Started</Title>
+          <Subtitle style={{ color: 'white' }}>
             You'll have the ability to create and manage polls, ask questions, and monitor
             your students' responses in real-time.
           </Subtitle>
         </Header>
 
-        <PollCreator>
+        <PollCreator style={{backgroundColor: 'black' , border: '0.6px solid grey' }}>
           <QuestionSection>
             <QuestionLabel>Enter your question</QuestionLabel>
             <QuestionInput
@@ -110,18 +110,17 @@ const TeacherDashboard = () => {
             <DurationSelect
               value={duration}
               onChange={(e) => setDuration(Number(e.target.value))}
-            >
-              <option value="30">30 seconds</option>
+             >
+              <option value="30" >30 seconds</option>
               <option value="60">60 seconds</option>
               <option value="90">90 seconds</option>
               <option value="120">120 seconds</option>
             </DurationSelect>
           </QuestionSection>
-
           <OptionsSection>
             <OptionsHeader>
               <OptionsTitle>Edit Options</OptionsTitle>
-              <IsCorrectHeader>Is it Correct?</IsCorrectHeader>
+              <IsCorrectHeader style={{ color: 'black' }} >Is it Correct?</IsCorrectHeader>
             </OptionsHeader>
             {options.map((option, index) => (
               <OptionContainer key={index}>
@@ -168,10 +167,10 @@ const TeacherDashboard = () => {
         {currentPoll && (
           <ResultsSection>
             <ResultsHeader>
-              <h2>Live Results</h2>
+              <h2 style={{ color: 'white' }}>Live Results</h2>
               <TotalVotes>{Object.keys(results).length} votes</TotalVotes>
             </ResultsHeader>
-            <Question>{currentPoll.question}</Question>
+            <Question >{currentPoll.question}</Question>
             <ResultsGrid>
               {currentPoll.options.map((option, index) => {
                 const percentage = calculatePercentage(option);
@@ -202,7 +201,7 @@ const TeacherDashboard = () => {
                 );
               })}
             </ResultsGrid>
-            <Timer>Time remaining: {Math.ceil(timeRemaining / 1000)}s</Timer>
+            <Timer style={{ color: 'white' }}>Time remaining: {Math.ceil(timeRemaining / 1000)}s</Timer>
           </ResultsSection>
         )}
         <Chat isTeacher={true} />
@@ -251,7 +250,7 @@ const PollCreator = styled.div`
   background: white;
   padding: 30px;
   border-radius: 12px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(161, 147, 147, 0.1);
 `;
 
 const QuestionSection = styled.div`
@@ -259,8 +258,8 @@ const QuestionSection = styled.div`
 `;
 
 const QuestionLabel = styled.div`
-  font-size: 14px;
-  color: #636e72;
+  font-size: 16px;
+  color:rgb(208, 218, 221);
   margin-bottom: 8px;
 `;
 
@@ -281,7 +280,8 @@ const QuestionInput = styled.input`
 const DurationSelect = styled.select`
   width: 150px;
   padding: 10px;
-  border: 2px solid #e0e0e0;
+  border: 2px solid rgb(19, 16, 16);
+  color:rgb(21, 22, 22);
   border-radius: 8px;
   font-size: 14px;
   background: white;
@@ -305,7 +305,7 @@ const OptionsHeader = styled.div`
 
 const OptionsTitle = styled.h3`
   font-size: 16px;
-  color: #2d3436;
+  color:rgb(206, 226, 226);
   margin: 0;
 `;
 
@@ -360,6 +360,7 @@ const CorrectOptions = styled.div`
   align-items: center;
   gap: 10px;
   min-width: 120px;
+  color:rgb(228, 245, 245);
 `;
 
 const CorrectOption = styled.input`
@@ -392,7 +393,7 @@ const TotalVotes = styled.span`
 const Question = styled.div`
   font-size: 18px;
   font-weight: 600;
-  color: #2d3436;
+  color:rgb(233, 240, 241);
   margin-bottom: 20px;
 `;
 

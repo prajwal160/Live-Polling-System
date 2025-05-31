@@ -81,23 +81,25 @@ const Container = styled.div`
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background-color: #f5f5f5;
+  background-color: #1a1a1a;
   padding: 20px;
 `;
 
 const Card = styled.div`
-  background: white;
+  background: #2d2d2d;
   border-radius: 20px;
   padding: 40px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
   max-width: 600px;
   width: 100%;
+  border: 1px solid #404040;
 `;
 
 const Logo = styled.div`
   font-size: 24px;
   margin-bottom: 20px;
   text-align: center;
+  color: #e0e0e0;
 `;
 
 const Title = styled.h1`
@@ -105,11 +107,12 @@ const Title = styled.h1`
   font-weight: 600;
   text-align: center;
   margin-bottom: 10px;
+  color: #e0e0e0;
 `;
 
 const Subtitle = styled.p`
   text-align: center;
-  color: #666;
+  color: #b0b0b0;
   margin-bottom: 30px;
 `;
 
@@ -122,34 +125,42 @@ const RoleContainer = styled.div`
 
 const RoleCard = styled.div`
   padding: 20px;
-  border: 2px solid ${(props) => (props.selected ? '#6c5ce7' : '#e0e0e0')};
+  border: 2px solid ${(props) => (props.selected ? '#6c5ce7' : '#404040')};
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.3s ease;
-  background: ${(props) => (props.selected ? '#f0f0ff' : 'white')};
+  background: ${(props) => (props.selected ? '#363636' : '#2d2d2d')};
 
   &:hover {
     border-color: #6c5ce7;
+    background: #363636;
   }
 `;
 
 const RoleTitle = styled.h3`
   font-size: 18px;
   margin-bottom: 10px;
+  color: #e0e0e0;
 `;
 
 const RoleDescription = styled.p`
   font-size: 14px;
-  color: #666;
+  color: #b0b0b0;
 `;
 
 const NameInput = styled.input`
   width: 100%;
   padding: 12px;
-  border: 2px solid #e0e0e0;
+  border: 2px solid #404040;
   border-radius: 8px;
   margin-bottom: 20px;
   font-size: 16px;
+  background: #363636;
+  color: #e0e0e0;
+
+  &::placeholder {
+    color: #808080;
+  }
 
   &:focus {
     border-color: #6c5ce7;
@@ -169,7 +180,7 @@ const ContinueButton = styled.button`
   transition: background 0.3s ease;
 
   &:disabled {
-    background: #ccc;
+    background: #404040;
     cursor: not-allowed;
   }
 

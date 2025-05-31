@@ -10,31 +10,32 @@ const KickedPage = () => {
         <Message>
           The teacher has removed you from the session. You can no longer participate in the polls or chat.
         </Message>
-        <SubMessage>
+        <Instruction>
           Please close this window and contact your teacher if you think this was a mistake.
-        </SubMessage>
+        </Instruction>
       </Card>
     </Container>
   );
 };
 
 const Container = styled.div`
-  min-height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
+  min-height: 100vh;
+  background-color: #1a1a1a;
   padding: 20px;
-  background-color: #f5f5f5;
 `;
 
 const Card = styled.div`
-  background: white;
+  background: #2d2d2d;
+  border-radius: 20px;
   padding: 40px;
-  border-radius: 12px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  text-align: center;
-  max-width: 400px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  max-width: 500px;
   width: 100%;
+  text-align: center;
+  border: 1px solid #404040;
 `;
 
 const Icon = styled.div`
@@ -44,21 +45,24 @@ const Icon = styled.div`
 
 const Title = styled.h1`
   font-size: 24px;
-  color: #ff4757;
-  margin-bottom: 16px;
+  font-weight: 600;
+  color: #ff6b6b;
+  margin-bottom: 20px;
 `;
 
 const Message = styled.p`
-  color: #636e72;
-  line-height: 1.5;
+  color: #e0e0e0;
   font-size: 16px;
-  margin-bottom: 12px;
+  line-height: 1.6;
+  margin-bottom: 20px;
 `;
 
-const SubMessage = styled.p`
-  color: #a4b0be;
-  line-height: 1.5;
+const Instruction = styled.p`
+  color: #b0b0b0;
   font-size: 14px;
+  line-height: 1.6;
+  padding-top: 20px;
+  border-top: 1px solid #404040;
 `;
 
 export default KickedPage; 

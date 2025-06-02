@@ -348,6 +348,11 @@ io.on('connection', (socket) => {
 
   // Handle poll history request
   socket.on('poll:history', async () => {
+    if (!socket.isTeacher) {
+      socket.emit('error', 'Unauthorized: Only teachers can access poll history');
+      return;
+    }
+    
     try {
       const polls = await Poll.find().sort({ endTime: -1 });
       socket.emit('poll:history', polls);

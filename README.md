@@ -2,9 +2,10 @@
 
 A real-time polling system for teachers and students built with React, Node.js, and Socket.IO.
 
-live link httpslive-polling-system-git-main-prajwals-projects-328045a6.vercel.app
+Front-end hosted link(Vercel) : - https://live-poll-system.vercel.app/
 
-live link httpslive-polling-system-blue.vercel.app
+backend hosted link(Render) :- https://assign-cc11.onrender.com
+
 
 
 ## Features
